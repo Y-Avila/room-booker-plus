@@ -208,9 +208,9 @@ Usuarios con acceso al panel de administración.
 
 #### 2.1 Configuración API Client
 ```
-[ ] Crear API client con Axios o Fetch
-[ ] Configurar interceptors para JWT
-[ ] Crear hooks personalizados con React Query
+[x] Crear API client con Fetch
+[x] Configurar interceptors para JWT
+[x] Crear hooks personalizados con React Query
 ```
 
 #### 2.2 Integración de Páginas
