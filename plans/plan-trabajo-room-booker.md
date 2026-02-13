@@ -155,25 +155,25 @@ Usuarios con acceso al panel de administración.
 
 #### 1.1 Configuración del Proyecto Backend
 ```
-[ ] Crear estructura de proyecto backend/
-[ ] Inicializar package.json con dependencias
-[ ] Configurar TypeScript
-[ ] Crear archivo docker-compose.yml
-[ ] Configurar variables de entorno (.env)
+[x] Crear estructura de proyecto backend/
+[x] Inicializar package.json con dependencias
+[x] Configurar TypeScript
+[x] Crear archivo docker-compose.yml
+[x] Configurar variables de entorno (.env)
 ```
 
 #### 1.2 Base de Datos
 ```
-[ ] Instalar MySQL Server 8.x
-[ ] Definir esquema Prisma con provider MySQL
-[ ] Ejecutar migraciones
-[ ] Crear seed data (salas iniciales)
-[ ] Configurar conexión a base de datos
+[x] Configurar SQL Server (servidor propio)
+[x] Definir esquema Prisma con provider SQL Server
+[x] Ejecutar migraciones
+[x] Crear seed data (salas iniciales)
+[x] Configurar conexión a base de datos
 ```
 
 #### 1.3 API REST
 ```
-[ ] Endpoint Salas:
+[x] Endpoint Salas:
     GET    /api/rooms              - Listar todas
     GET    /api/rooms/:id          - Detalle de sala
     POST   /api/rooms              - Crear sala
@@ -181,7 +181,7 @@ Usuarios con acceso al panel de administración.
     PUT    /api/rooms/:id/block    - Bloquear sala
     PUT    /api/rooms/:id/unblock  - Desbloquear sala
 
-[ ] Endpoint Reservas:
+[x] Endpoint Reservas:
     GET    /api/bookings           - Listar (con filtros)
     GET    /api/bookings/calendar  - Calendario por sala/semana
     POST   /api/bookings           - Crear reserva
@@ -190,11 +190,11 @@ Usuarios con acceso al panel de administración.
     PUT    /api/bookings/:id/reject     - Rechazar
     PUT    /api/bookings/:id/cancel     - Cancelar (admin)
     POST   /api/bookings/:id/cancel-user - Cancelar (usuario)
-    
-[ ] Endpoint Auth:
+
+[x] Endpoint Auth:
     POST   /api/auth/login         - Login admin
-    POST   /api/auth/verify        - Verificar token
-    
+    POST   /api/auth/verify         - Verificar token
+
 [ ] Endpoint Historial:
     GET    /api/history            - Historial completo
     GET    /api/audit/:bookingId   - Auditoría de reserva

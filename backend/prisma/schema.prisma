@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id              String   @id @default(uuid())
+  name            String
+  capacity        Int
+  location        String
+  equipment       String   // JSON array stored as text
+  image_url       String?
+  observations    String?
+  available_days  String    // Days stored as JSON array e.g., "[1,2,3,4,5]"
+  available_start String   @db.VarChar(5)
+  available_end   String   @db.VarChar(5)
+  is_blocked      Boolean  @default(false)
+  block_reason    String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  bookings Booking[]
+
+  @@map("rooms")
+}
+
+model Booking {
+  id               String    @id @default(uuid())
+  room_id          String
+  full_name        String
+  area             String
+  email            String
+  phone            String?
+  reason           String
+  date             DateTime  @db.Date
+  start_time       String    @db.VarChar(5)
+  end_time         String    @db.VarChar(5)
+  observations     String?
+  status           String    @default("pending") // pending, approved, rejected, cancelled
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+  approved_by      String?
+  approved_at      DateTime?
+  rejected_by      String?
+  rejected_at      DateTime?
+  rejection_reason String?
+  cancellation_token String?  @unique
+
+  room         Room        @relation(fields: [room_id], references: [id])
+  audit_logs   AuditLog[]
+
+  @@index([room_id, date])
+  @@index([status])
+  @@map("bookings")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  booking_id  String
+  action      String   // created, approved, rejected, cancelled
+  performed_by String
+  performed_at DateTime @default(now())
+  details     String?
+
+  booking Booking @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
+
+model Admin {
+  id         String   @id @default(uuid())
+  username   String   @unique
+  password_hash String
+  email      String   @unique
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+
+  @@map("admins")
+}
