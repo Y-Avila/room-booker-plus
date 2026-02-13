@@ -42,8 +42,8 @@ graph TB
     end
 
     subgraph Database
-        DB[(PostgreSQL / MySQL)]
-        ORM[Prisma / Drizzle]
+        DB[(MySQL 8.x)]
+        ORM[Prisma]
     end
 
     FE --> API
@@ -56,11 +56,11 @@ graph TB
 | Decisión | Opción Recomendada | Razón |
 |----------|-------------------|-------|
 | **Backend** | Node.js + Express | Consistencia con frontend (TypeScript), ecosistema maduro |
-| **Base de Datos** | PostgreSQL | Robusta, relaciones complejas, tipos de datos nativos |
+| **Base de Datos** | MySQL Server | Accesible en tu infraestructura, configuración simple |
 | **ORM** | Prisma | Type-safety completo, migración fácil, DX excelente |
 | **Autenticación** | JWT + bcrypt | Simple, sin registro de usuarios, solo admin |
-| **Notificaciones** | Nodemailer + SMTP | Funcionalidad de correos要求 |
-| **Deployment** | Docker + Docker Compose | Portabilidad, fácil configuración |
+| **Notificaciones** | Gmail / SendGrid API | Sin acceso a servidor SMTP interno |
+| **Deployment** | Railway / Render / VPS | Acceso web externo, sin acceso a servidor interno |
 
 ---
 
@@ -164,7 +164,8 @@ Usuarios con acceso al panel de administración.
 
 #### 1.2 Base de Datos
 ```
-[ ] Definir esquema Prisma
+[ ] Instalar MySQL Server 8.x
+[ ] Definir esquema Prisma con provider MySQL
 [ ] Ejecutar migraciones
 [ ] Crear seed data (salas iniciales)
 [ ] Configurar conexión a base de datos
@@ -260,13 +261,14 @@ Usuarios con acceso al panel de administración.
 
 #### 4.1 Configuración de Emails
 ```
-[ ] Configurar Nodemailer con SMTP
+[ ] Crear cuenta en servicio SMTP (Gmail / SendGrid / Mailgun)
+[ ] Configurar Nodemailer con credenciales del servicio
 [ ] Crear plantillas de email:
     - Confirmación de reserva creada (a admin)
     - Aprobación de reserva (a usuario)
     - Rechazo de reserva (a usuario)
     - Cancelación exitosa (a usuario)
-[ ] Implementar cola de emails (opcional: BullMQ)
+[ ] Usar variables de entorno para credenciales
 ```
 
 #### 4.2 Tokens de Cancelación
@@ -300,10 +302,24 @@ Usuarios con acceso al panel de administración.
 
 #### 5.3 Deployment
 ```
-[ ] Crear Dockerfile
-[ ] Configurar docker-compose.yml completo
-[ ] Script de despliegue (opcional)
-[ ] Testing de producción
+[ ] Opción 1: Railway / Render (fácil, gratuito para empezar)
+    - Conectar repositorio GitHub
+    - Configurar variables de entorno
+    - Deploy automático
+    
+[ ] Opción 2: VPS propio (DigitalOcean / Linode)
+    - Docker para contenedor
+    - Nginx como reverse proxy
+    - Certbot para SSL (HTTPS)
+    
+[ ] Base de datos MySQL:
+    - Opción A: MySQL en Railway/Render (add-on)
+    - Opción B: PlanetScale / ClearDB (MySQL managed)
+    - Opción C: MySQL en VPS propio
+
+[ ] Frontend:
+    - Lovable: Share -> Publish (ya configurado)
+    - O migrate a Vercel/Netlify
 ```
 
 ---
@@ -399,18 +415,21 @@ flowchart TD
 ### Para Aprobación:
 
 1. **Confirmar stack tecnológico:**
-   - Node.js + Express vs Python FastAPI
-   - PostgreSQL vs MySQL
-   - Prisma vs Drizzle
+   - Node.js + Express ✅
+   - MySQL Server ✅
+   - Prisma ORM ✅
+   - Docker ✅
 
-2. **Definir infraestructura:**
-   - ¿Docker para desarrollo y producción?
-   - ¿Proveedor de hosting?
-   - ¿Configuración de SMTP para emails?
+2. **Infraestructura de Email:**
+   - Servicio SMTP externo (Gmail/SendGrid/Mailgun)
+   - Sin acceso a servidor SMTP interno de la empresa
 
-3. **Estimar recursos:**
-   - ¿Desarrollo interno o outsourcing?
-   - ¿Timeline objetivo?
+3. **Deployment:**
+   - Frontend: Lovable (ya tiene URL pública)
+   - Backend: Railway / Render / Vercel / VPS propio
+   - Base de datos: MySQL Server externo o hosting con MySQL
+
+4. **Timeline objetivo:**
 
 ---
 
