@@ -195,9 +195,11 @@ Usuarios con acceso al panel de administración.
     POST   /api/auth/login         - Login admin
     POST   /api/auth/verify         - Verificar token
 
-[ ] Endpoint Historial:
+[x] Endpoint Historial:
     GET    /api/history            - Historial completo
     GET    /api/audit/:bookingId   - Auditoría de reserva
+    GET    /api/audit/room/:roomId - Auditoría por sala
+    GET    /api/audit/stats/summary - Estadísticas
 ```
 
 ---

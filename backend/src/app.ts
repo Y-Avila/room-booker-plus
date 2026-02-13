@@ -9,6 +9,7 @@ dotenv.config();
 import roomsRouter from './routes/rooms';
 import bookingsRouter from './routes/bookings';
 import authRouter from './routes/auth';
+import historyRouter from './routes/history';
 
 const app: Application = express();
 
@@ -25,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/rooms', roomsRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/history', historyRouter);
 
 // Health check
 app.get('/api/health', (_req: Request, res: Response) => {
