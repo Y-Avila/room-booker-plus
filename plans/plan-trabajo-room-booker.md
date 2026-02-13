@@ -215,20 +215,20 @@ Usuarios con acceso al panel de administración.
 
 #### 2.2 Integración de Páginas
 ```
-[ ] Index.tsx:
+[x] Index.tsx:
     - Conectar API para lista de salas
     - Actualizar mock data con datos reales
     
-[ ] RoomDetail.tsx:
+[x] RoomDetail.tsx:
     - Conectar API para detalle de sala
     - Integrar calendario con endpoint /calendar
     - Implementar formulario de reserva POST
     
-[ ] Admin:
-    - Conectar Dashboard con estadísticas API
-    - Conectar Bookings con lista de reservas
-    - Conectar History con endpoint de historial
-    - Conectar Settings con gestión de salas
+[x] Admin:
+    - [x] Conectar Dashboard con estadísticas API
+    - [x] Conectar Bookings con lista de reservas
+    - [x] Conectar History con endpoint de historial
+    - [x] Conectar Settings con gestión de salas
 ```
 
 ---
