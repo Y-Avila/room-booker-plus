@@ -258,7 +258,7 @@ class ApiClient {
   }
 
   async getAudit(bookingId: string): Promise<Booking> {
-    const data = await this.request<Booking>(`/audit/${bookingId}`);
+    const data = await this.request<Booking>(`/history/${bookingId}`);
     return this.convertToCamelCase(data);
   }
 
@@ -267,7 +267,7 @@ class ApiClient {
       summary: { total: number; pending: number; approved: number; rejected: number; cancelled: number };
       byRoom: { roomId: string; roomName: string; count: number }[];
       byMonth: { month: number; count: number }[];
-    }>('/audit/stats/summary');
+    }>('/history/stats/summary');
   }
 }
 

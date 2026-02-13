@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { CalendarDays, Lock, Mail, ArrowLeft } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { api } from '@/api/client';
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -16,28 +17,53 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Redirigir al dashboard si ya tiene token
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      navigate('/admin', { replace: true });
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulated login - in production this would validate against backend
-    setTimeout(() => {
-      if (email === 'admin@empresa.com' && password === 'admin123') {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.token) {
+        // Sincronizar token con ApiClient y localStorage
+        api.setToken(data.token);
         setIsAdmin(true);
         toast({
           title: 'Bienvenido',
           description: 'Has iniciado sesión como administrador.',
         });
-        navigate('/admin');
+        // Usar replace para evitar bucle de navegación
+        navigate('/admin', { replace: true });
       } else {
         toast({
           title: 'Error de autenticación',
-          description: 'Credenciales incorrectas. Intenta nuevamente.',
+          description: data.message || 'Credenciales incorrectas.',
           variant: 'destructive',
         });
       }
+    } catch (error) {
+      toast({
+        title: 'Error de conexión',
+        description: 'No se pudo conectar con el servidor.',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -99,7 +125,7 @@ export default function AdminLogin() {
 
             <div className="mt-4 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
               <p className="font-medium">Credenciales de prueba:</p>
-              <p>Email: admin@empresa.com</p>
+              <p>Email: admin@roombooker.com</p>
               <p>Contraseña: admin123</p>
             </div>
           </CardContent>

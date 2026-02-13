@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Users, MapPin, Monitor, Clock, Info } from 'lucide-react';
 import { Layout } from '@/components/layout/Layout';
@@ -6,23 +6,46 @@ import { WeeklyCalendar } from '@/components/calendar/WeeklyCalendar';
 import { BookingForm } from '@/components/booking/BookingForm';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useApp } from '@/contexts/AppContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { useRoom, useCalendar } from '@/hooks/useApi';
+import type { Room } from '@/types';
 
 export default function RoomDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getRoomById } = useApp();
-  const room = getRoomById(id || '');
+  const { data: room, isLoading, error } = useRoom(id || '');
   
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [formOpen, setFormOpen] = useState(false);
+  const [weekStart, setWeekStart] = useState<string>(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    return monday.toISOString().split('T')[0];
+  });
 
-  if (!room) {
+  // Get calendar data when room or week changes
+  const { data: calendarData } = useCalendar(id || '', weekStart);
+
+  if (isLoading) {
+    return (
+      <Layout title="Cargando...">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-1/3" />
+          <div className="h-64 bg-muted rounded" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !room) {
     return (
       <Layout title="Sala no encontrada">
         <div className="flex flex-col items-center justify-center py-12">
-          <p className="mb-4 text-muted-foreground">La sala solicitada no existe.</p>
+          <p className="mb-4 text-muted-foreground">
+            {error ? `Error: ${error.message}` : 'La sala solicitada no existe.'}
+          </p>
           <Button asChild>
             <Link to="/">Volver a salas</Link>
           </Button>
@@ -35,6 +58,18 @@ export default function RoomDetail() {
     setSelectedDate(date);
     setSelectedTime(time);
     setFormOpen(true);
+  };
+
+  const handlePreviousWeek = () => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() - 7);
+    setWeekStart(date.toISOString().split('T')[0]);
+  };
+
+  const handleNextWeek = () => {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + 7);
+    setWeekStart(date.toISOString().split('T')[0]);
   };
 
   const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -55,9 +90,9 @@ export default function RoomDetail() {
         {/* Room Info */}
         <div className="space-y-4">
           <Card>
-            <div className="aspect-video overflow-hidden rounded-t-lg">
+            <div className="aspect-video overflow-hidden rounded-t-lg bg-muted">
               <img
-                src={room.image}
+                src={room.image || '/placeholder.svg'}
                 alt={room.name}
                 className="h-full w-full object-cover"
               />
@@ -94,13 +129,7 @@ export default function RoomDetail() {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Info className="h-4 w-4" />
-                Información
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="p-5 space-y-2 text-sm">
               <p>
                 <span className="font-medium">Días disponibles:</span> {availableDayNames}
               </p>
@@ -121,13 +150,32 @@ export default function RoomDetail() {
 
         {/* Calendar */}
         <div className="lg:col-span-2">
-          <WeeklyCalendar room={room} onSlotSelect={handleSlotSelect} />
+          <div className="mb-4 flex items-center justify-between">
+            <Button variant="outline" onClick={handlePreviousWeek}>
+              Semana anterior
+            </Button>
+            <span className="font-medium">
+              {new Date(weekStart).toLocaleDateString('es-ES', { 
+                day: 'numeric', 
+                month: 'long' 
+              })}
+            </span>
+            <Button variant="outline" onClick={handleNextWeek}>
+              Semana siguiente
+            </Button>
+          </div>
+          
+          <WeeklyCalendar 
+            room={room as Room} 
+            calendarData={calendarData as any}
+            onSlotSelect={handleSlotSelect} 
+          />
         </div>
       </div>
 
       {/* Booking Form Dialog */}
       <BookingForm
-        room={room}
+        room={room as Room}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
         open={formOpen}

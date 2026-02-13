@@ -14,8 +14,14 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const admin = await prisma.admin.findUnique({
-      where: { username },
+    // Buscar por username o por email
+    const admin = await prisma.admin.findFirst({
+      where: {
+        OR: [
+          { username: username },
+          { email: username },
+        ],
+      },
     });
 
     if (!admin) {
@@ -32,6 +38,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    const expiresIn = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
     const token = jwt.sign(
       {
         id: admin.id,
@@ -39,7 +46,7 @@ router.post('/login', async (req: Request, res: Response) => {
         email: admin.email,
       },
       process.env.JWT_SECRET || 'default-secret',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      { expiresIn }
     );
 
     res.json({

@@ -12,21 +12,28 @@ import { Layout } from '@/components/layout/Layout';
 import { BookingCard } from '@/components/admin/BookingCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useApp } from '@/contexts/AppContext';
+import { useStats, useBookings, useRooms } from '@/hooks/useApi';
 
 export default function AdminDashboard() {
-  const { bookings, rooms } = useApp();
+  const { data: stats, isLoading: statsLoading } = useStats();
+  const { data: bookings, isLoading: bookingsLoading, refetch: refetchBookings } = useBookings();
+  const { data: rooms } = useRooms();
 
-  const stats = useMemo(() => {
-    const pending = bookings.filter((b) => b.status === 'pending').length;
-    const approved = bookings.filter((b) => b.status === 'approved').length;
-    const activeRooms = rooms.filter((r) => !r.isBlocked).length;
-    const total = bookings.length;
+  const statsData = useMemo(() => {
+    if (!stats) {
+      return { pending: 0, approved: 0, activeRooms: 0, total: 0 };
+    }
+    
+    const pending = stats.summary.pending;
+    const approved = stats.summary.approved;
+    const activeRooms = rooms?.filter((r) => !r.isBlocked).length || 0;
+    const total = stats.summary.total;
 
     return { pending, approved, activeRooms, total };
-  }, [bookings, rooms]);
+  }, [stats, rooms]);
 
   const pendingBookings = useMemo(() => {
+    if (!bookings) return [];
     return bookings
       .filter((b) => b.status === 'pending')
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -36,7 +43,7 @@ export default function AdminDashboard() {
   const statCards = [
     {
       title: 'Pendientes',
-      value: stats.pending,
+      value: statsData.pending,
       icon: Clock,
       description: 'Solicitudes por revisar',
       color: 'text-status-pending',
@@ -44,7 +51,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Aprobadas',
-      value: stats.approved,
+      value: statsData.approved,
       icon: CheckCircle2,
       description: 'Reservas activas',
       color: 'text-status-available',
@@ -52,21 +59,23 @@ export default function AdminDashboard() {
     },
     {
       title: 'Salas Activas',
-      value: stats.activeRooms,
+      value: statsData.activeRooms,
       icon: Building2,
-      description: `de ${rooms.length} salas`,
+      description: rooms ? `de ${rooms.length} salas` : 'Cargando...',
       color: 'text-primary',
       bgColor: 'bg-primary/10',
     },
     {
       title: 'Total Reservas',
-      value: stats.total,
+      value: statsData.total,
       icon: Calendar,
       description: 'En el sistema',
       color: 'text-muted-foreground',
       bgColor: 'bg-muted',
     },
   ];
+
+  const isLoading = statsLoading || bookingsLoading;
 
   return (
     <Layout title="Dashboard" subtitle="Panel de administración">
@@ -78,7 +87,9 @@ export default function AdminDashboard() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  <p className="mt-1 text-3xl font-bold">{stat.value}</p>
+                  <p className="mt-1 text-3xl font-bold">
+                    {isLoading ? '-' : stat.value}
+                  </p>
                   <p className="mt-1 text-xs text-muted-foreground">{stat.description}</p>
                 </div>
                 <div className={`rounded-lg p-2.5 ${stat.bgColor}`}>
@@ -105,7 +116,13 @@ export default function AdminDashboard() {
           </Button>
         </CardHeader>
         <CardContent>
-          {pendingBookings.length === 0 ? (
+          {isLoading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse h-24 bg-muted rounded-lg" />
+              ))}
+            </div>
+          ) : pendingBookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <CheckCircle2 className="mb-3 h-12 w-12 text-status-available" />
               <p className="font-medium">No hay solicitudes pendientes</p>
@@ -116,7 +133,11 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4">
               {pendingBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard 
+                  key={booking.id} 
+                  booking={booking}
+                  onRefresh={() => refetchBookings()}
+                />
               ))}
             </div>
           )}

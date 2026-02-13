@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import RoomDetail from "./pages/RoomDetail";
 import AdminLogin from "./pages/admin/Login";
@@ -26,10 +27,15 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/room/:id" element={<RoomDetail />} />
             <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/bookings" element={<AdminBookings />} />
-            <Route path="/admin/history" element={<AdminHistory />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
+            
+            {/* Rutas protegidas de admin */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/bookings" element={<AdminBookings />} />
+              <Route path="/admin/history" element={<AdminHistory />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+            </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

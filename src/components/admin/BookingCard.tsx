@@ -4,7 +4,6 @@ import { es } from 'date-fns/locale';
 import { 
   CalendarDays, 
   Clock, 
-  User, 
   Building2, 
   Mail, 
   Phone,
@@ -14,7 +13,6 @@ import {
   FileText
 } from 'lucide-react';
 import { Booking, Room } from '@/types';
-import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,11 +28,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useApproveBooking, useRejectBooking, useCancelBooking } from '@/hooks/useApi';
+import { useVerifyAuth } from '@/hooks/useApi';
 
 interface BookingCardProps {
   booking: Booking;
   room?: Room;
   showActions?: boolean;
+  onRefresh?: () => void;
 }
 
 const statusConfig = {
@@ -56,45 +57,101 @@ const statusConfig = {
   },
 };
 
-export function BookingCard({ booking, room, showActions = true }: BookingCardProps) {
-  const { updateBookingStatus, getRoomById } = useApp();
+export function BookingCard({ booking, room, showActions = true, onRefresh }: BookingCardProps) {
   const { toast } = useToast();
+  const { data: admin } = useVerifyAuth();
   const [rejectDialog, setRejectDialog] = useState(false);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [reason, setReason] = useState('');
   
-  const bookingRoom = room || getRoomById(booking.roomId);
+  const approveMutation = useApproveBooking();
+  const rejectMutation = useRejectBooking();
+  const cancelMutation = useCancelBooking();
+  
   const config = statusConfig[booking.status];
 
-  const handleApprove = () => {
-    updateBookingStatus(booking.id, 'approved', 'admin@empresa.com');
-    toast({
-      title: 'Reserva aprobada',
-      description: `La reserva de ${booking.fullName} ha sido aprobada.`,
-    });
+  const handleApprove = async () => {
+    try {
+      await approveMutation.mutateAsync({
+        id: booking.id,
+        approvedBy: admin?.admin?.username || 'admin',
+      });
+      toast({
+        title: 'Reserva aprobada',
+        description: `La reserva de ${booking.fullName} ha sido aprobada.`,
+      });
+      onRefresh?.();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo aprobar la reserva',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleReject = () => {
-    updateBookingStatus(booking.id, 'rejected', 'admin@empresa.com', reason);
-    setRejectDialog(false);
-    setReason('');
-    toast({
-      title: 'Reserva rechazada',
-      description: `La reserva de ${booking.fullName} ha sido rechazada.`,
-    });
+  const handleReject = async () => {
+    try {
+      await rejectMutation.mutateAsync({
+        id: booking.id,
+        rejectedBy: admin?.admin?.username || 'admin',
+        reason,
+      });
+      setRejectDialog(false);
+      setReason('');
+      toast({
+        title: 'Reserva rechazada',
+        description: `La reserva de ${booking.fullName} ha sido rechazada.`,
+      });
+      onRefresh?.();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo rechazar la reserva',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handleCancel = () => {
-    updateBookingStatus(booking.id, 'cancelled', 'admin@empresa.com', reason);
-    setCancelDialog(false);
-    setReason('');
-    toast({
-      title: 'Reserva cancelada',
-      description: `La reserva de ${booking.fullName} ha sido cancelada.`,
-    });
+  const handleCancel = async () => {
+    try {
+      await cancelMutation.mutateAsync({
+        id: booking.id,
+        cancelledBy: admin?.admin?.username || 'admin',
+      });
+      setCancelDialog(false);
+      setReason('');
+      toast({
+        title: 'Reserva cancelada',
+        description: `La reserva de ${booking.fullName} ha sido cancelada.`,
+      });
+      onRefresh?.();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo cancelar la reserva',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const formattedDate = format(new Date(booking.date + 'T00:00:00'), "EEEE d 'de' MMMM", { locale: es });
+  // Formatear fecha de manera segura
+  const formatDateSafely = (dateString: string | null | undefined): string => {
+    if (!dateString || !dateString.trim()) {
+      return 'Fecha no disponible';
+    }
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      if (isNaN(date.getTime())) {
+        return 'Fecha no disponible';
+      }
+      return format(date, "EEEE d 'de' MMMM", { locale: es });
+    } catch {
+      return 'Fecha no disponible';
+    }
+  };
+
+  const formattedDate = formatDateSafely(booking.date);
 
   return (
     <>
@@ -117,7 +174,7 @@ export function BookingCard({ booking, room, showActions = true }: BookingCardPr
               <div className="grid gap-2 text-sm sm:grid-cols-2">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Building2 className="h-4 w-4" />
-                  <span>{bookingRoom?.name || 'Sala no encontrada'}</span>
+                  <span>{room?.name || 'Sala no encontrada'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CalendarDays className="h-4 w-4" />
@@ -153,14 +210,20 @@ export function BookingCard({ booking, room, showActions = true }: BookingCardPr
             {/* Actions */}
             {showActions && booking.status === 'pending' && (
               <div className="flex gap-2 sm:flex-col">
-                <Button size="sm" onClick={handleApprove} className="gap-1.5">
+                <Button 
+                  size="sm" 
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending}
+                  className="gap-1.5"
+                >
                   <Check className="h-4 w-4" />
-                  Aprobar
+                  {approveMutation.isPending ? 'Procesando...' : 'Aprobar'}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setRejectDialog(true)}
+                  disabled={rejectMutation.isPending}
                   className="gap-1.5 text-destructive hover:text-destructive"
                 >
                   <X className="h-4 w-4" />
@@ -174,10 +237,11 @@ export function BookingCard({ booking, room, showActions = true }: BookingCardPr
                 size="sm"
                 variant="outline"
                 onClick={() => setCancelDialog(true)}
+                disabled={cancelMutation.isPending}
                 className="gap-1.5"
               >
                 <Ban className="h-4 w-4" />
-                Cancelar
+                {cancelMutation.isPending ? 'Procesando...' : 'Cancelar'}
               </Button>
             )}
           </div>

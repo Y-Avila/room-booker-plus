@@ -1,14 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Room, Booking, SlotStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useApp } from '@/contexts/AppContext';
+import { useBookings } from '@/hooks/useApi';
 
 interface WeeklyCalendarProps {
   room: Room;
+  calendarData?: {
+    roomId: string;
+    weekStart: string;
+    days: {
+      date: string;
+      slots: {
+        time: string;
+        status: 'available' | 'occupied';
+        bookingId?: string;
+        duration?: number;
+        endTime?: string;
+      }[];
+    }[];
+  };
   onSlotSelect?: (date: string, time: string) => void;
 }
 
@@ -83,22 +97,45 @@ function getSlotStatus(
   return { status: 'available' };
 }
 
-export function WeeklyCalendar({ room, onSlotSelect }: WeeklyCalendarProps) {
-  const { getBookingsForRoom } = useApp();
+export function WeeklyCalendar({ room, calendarData, onSlotSelect }: WeeklyCalendarProps) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
   
+  // Fetch bookings from API if calendarData is not provided
+  const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+  const { data: bookingsData } = useBookings({
+    roomId: room.id,
+    startDate: weekStartStr,
+    endDate: format(addDays(weekStart, 7), 'yyyy-MM-dd'),
+  });
+
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   }, [weekStart]);
   
   const bookings = useMemo(() => {
-    const allBookings: Booking[] = [];
-    weekDays.forEach((day) => {
-      const dateStr = format(day, 'yyyy-MM-dd');
-      allBookings.push(...getBookingsForRoom(room.id, dateStr));
-    });
-    return allBookings;
-  }, [weekDays, room.id, getBookingsForRoom]);
+    return bookingsData || [];
+  }, [bookingsData]);
+  
+  // Build slot status from calendarData or calculate from bookings
+  const getStatusFromCalendarData = (date: Date, time: string): { status: SlotStatus; duration?: number } => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
+    if (calendarData) {
+      const dayData = calendarData.days.find(d => d.date === dateStr);
+      if (dayData) {
+        const slot = dayData.slots.find(s => s.time === time);
+        if (slot) {
+          if (slot.status === 'occupied') {
+            return { status: 'occupied', duration: slot.duration };
+          }
+          return { status: slot.status as SlotStatus };
+        }
+      }
+    }
+    
+    // Fallback to calculated status
+    return getSlotStatus(time, date, bookings, room);
+  };
   
   const handlePrevWeek = () => {
     setWeekStart((prev) => addDays(prev, -7));
@@ -109,7 +146,7 @@ export function WeeklyCalendar({ room, onSlotSelect }: WeeklyCalendarProps) {
   };
   
   const handleSlotClick = (date: Date, time: string) => {
-    const { status } = getSlotStatus(time, date, bookings, room);
+    const { status } = getStatusFromCalendarData(date, time);
     if (status === 'available' && onSlotSelect) {
       onSlotSelect(format(date, 'yyyy-MM-dd'), time);
     }
@@ -185,7 +222,7 @@ export function WeeklyCalendar({ room, onSlotSelect }: WeeklyCalendarProps) {
                   {time}
                 </div>
                 {weekDays.map((day) => {
-                  const { status, duration } = getSlotStatus(time, day, bookings, room);
+                  const { status, duration } = getStatusFromCalendarData(day, time);
                   const isClickable = status === 'available';
                   
                   return (
@@ -202,7 +239,7 @@ export function WeeklyCalendar({ room, onSlotSelect }: WeeklyCalendarProps) {
                         isToday(day) && status === 'available' && 'bg-primary/10 hover:bg-primary/20'
                       )}
                     >
-                      {status === 'occupied' && duration && (
+                      {status === 'occupied' && duration !== undefined && (
                         <span className="text-status-occupied font-medium">{duration}min</span>
                       )}
                     </button>

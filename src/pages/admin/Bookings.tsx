@@ -3,26 +3,34 @@ import { Layout } from '@/components/layout/Layout';
 import { BookingCard } from '@/components/admin/BookingCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useApp } from '@/contexts/AppContext';
+import { useBookings } from '@/hooks/useApi';
 import { BookingStatus } from '@/types';
 import { ClipboardList, Clock, CheckCircle2, XCircle, Ban } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminBookings() {
-  const { bookings } = useApp();
+  const { data: bookings, isLoading, refetch } = useBookings();
   const [activeTab, setActiveTab] = useState<BookingStatus | 'all'>('pending');
+  const { toast } = useToast();
 
   const filteredBookings = useMemo(() => {
+    if (!bookings) return [];
     if (activeTab === 'all') return bookings;
     return bookings.filter((b) => b.status === activeTab);
   }, [bookings, activeTab]);
 
-  const counts = useMemo(() => ({
-    all: bookings.length,
-    pending: bookings.filter((b) => b.status === 'pending').length,
-    approved: bookings.filter((b) => b.status === 'approved').length,
-    rejected: bookings.filter((b) => b.status === 'rejected').length,
-    cancelled: bookings.filter((b) => b.status === 'cancelled').length,
-  }), [bookings]);
+  const counts = useMemo(() => {
+    if (!bookings) {
+      return { all: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 };
+    }
+    return {
+      all: bookings.length,
+      pending: bookings.filter((b) => b.status === 'pending').length,
+      approved: bookings.filter((b) => b.status === 'approved').length,
+      rejected: bookings.filter((b) => b.status === 'rejected').length,
+      cancelled: bookings.filter((b) => b.status === 'cancelled').length,
+    };
+  }, [bookings]);
 
   return (
     <Layout title="Gestión de Reservas" subtitle="Administra todas las solicitudes de reserva">
@@ -70,7 +78,13 @@ export default function AdminBookings() {
             </TabsList>
 
             <TabsContent value={activeTab} className="mt-0">
-              {filteredBookings.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="animate-pulse h-32 bg-muted rounded-lg" />
+                  ))}
+                </div>
+              ) : filteredBookings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ClipboardList className="mb-3 h-12 w-12 text-muted-foreground/50" />
                   <p className="font-medium text-muted-foreground">No hay reservas en esta categoría</p>
@@ -78,7 +92,11 @@ export default function AdminBookings() {
               ) : (
                 <div className="space-y-4">
                   {filteredBookings.map((booking) => (
-                    <BookingCard key={booking.id} booking={booking} />
+                    <BookingCard 
+                      key={booking.id} 
+                      booking={booking}
+                      onRefresh={() => refetch()}
+                    />
                   ))}
                 </div>
               )}

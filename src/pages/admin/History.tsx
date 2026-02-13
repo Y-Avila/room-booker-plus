@@ -73,11 +73,22 @@ export default function AdminHistory() {
             <div className="space-y-6">
               {sortedBookings.map((booking) => {
                 const room = getRoomById(booking.roomId);
-                const formattedDate = format(
-                  new Date(booking.date + 'T00:00:00'),
-                  "d 'de' MMMM, yyyy",
-                  { locale: es }
-                );
+                // Formatear fecha de manera segura
+                const formatDateSafely = (dateString: string | null | undefined): string => {
+                  if (!dateString || !dateString.trim()) {
+                    return 'Fecha no disponible';
+                  }
+                  try {
+                    const date = new Date(dateString + 'T00:00:00');
+                    if (isNaN(date.getTime())) {
+                      return 'Fecha no disponible';
+                    }
+                    return format(date, "d 'de' MMMM, yyyy", { locale: es });
+                  } catch {
+                    return 'Fecha no disponible';
+                  }
+                };
+                const formattedDate = formatDateSafely(booking.date);
 
                 return (
                   <div key={booking.id} className="relative flex gap-4 pl-10 animate-slide-up">

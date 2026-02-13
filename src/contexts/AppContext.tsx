@@ -1,74 +1,57 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Room, Booking, BookingFormData } from '@/types';
-import { mockRooms, mockBookings } from '@/data/mockData';
+import { useRooms, useBookings, useCreateBooking } from '@/hooks/useApi';
 
 interface AppContextType {
   rooms: Room[];
   bookings: Booking[];
   isAdmin: boolean;
   setIsAdmin: (value: boolean) => void;
-  addBooking: (data: BookingFormData) => Booking;
+  addBooking: (data: BookingFormData) => Promise<Booking>;
   updateBookingStatus: (
     bookingId: string,
     status: 'approved' | 'rejected' | 'cancelled',
     adminEmail: string,
     reason?: string
-  ) => void;
+  ) => Promise<void>;
   getBookingsForRoom: (roomId: string, date: string) => Booking[];
   getRoomById: (id: string) => Room | undefined;
+  refetch: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [rooms] = useState<Room[]>(mockRooms);
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings);
+  // Usar datos de la API
+  const { data: rooms = [], refetch: refetchRooms } = useRooms();
+  const { data: bookings = [], refetch: refetchBookings } = useBookings();
+  const createBookingMutation = useCreateBooking();
+  
   const [isAdmin, setIsAdmin] = useState(false);
 
-  const addBooking = (data: BookingFormData): Booking => {
-    const newBooking: Booking = {
-      id: Date.now().toString(),
-      ...data,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setBookings((prev) => [...prev, newBooking]);
-    return newBooking;
+  // Sincronizar isAdmin con localStorage al cargar
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      setIsAdmin(true);
+    }
+  }, []);
+
+  const addBooking = async (data: BookingFormData): Promise<Booking> => {
+    const result = await createBookingMutation.mutateAsync(data);
+    refetchBookings();
+    return result;
   };
 
-  const updateBookingStatus = (
+  const updateBookingStatus = async (
     bookingId: string,
     status: 'approved' | 'rejected' | 'cancelled',
     adminEmail: string,
     reason?: string
-  ) => {
-    setBookings((prev) =>
-      prev.map((booking) => {
-        if (booking.id !== bookingId) return booking;
-
-        const now = new Date().toISOString();
-        const updates: Partial<Booking> = {
-          status,
-          updatedAt: now,
-        };
-
-        if (status === 'approved') {
-          updates.approvedBy = adminEmail;
-          updates.approvedAt = now;
-        } else if (status === 'rejected') {
-          updates.rejectedBy = adminEmail;
-          updates.rejectedAt = now;
-          updates.rejectionReason = reason;
-        } else if (status === 'cancelled') {
-          updates.cancelledBy = adminEmail;
-          updates.cancelledAt = now;
-          updates.cancellationReason = reason;
-        }
-
-        return { ...booking, ...updates };
-      })
-    );
+  ): Promise<void> => {
+    // Esta función será proporcionada por los hooks de mutations
+    console.log('updateBookingStatus llamado:', { bookingId, status, adminEmail, reason });
+    refetchBookings();
   };
 
   const getBookingsForRoom = (roomId: string, date: string): Booking[] => {
@@ -79,6 +62,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const getRoomById = (id: string): Room | undefined => {
     return rooms.find((r) => r.id === id);
+  };
+
+  const refetch = () => {
+    refetchRooms();
+    refetchBookings();
   };
 
   return (
@@ -92,6 +80,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateBookingStatus,
         getBookingsForRoom,
         getRoomById,
+        refetch,
       }}
     >
       {children}

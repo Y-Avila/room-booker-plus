@@ -15,7 +15,7 @@ async function main() {
     create: {
       username: 'admin',
       password_hash: passwordHash,
-      email: 'admin@roombooker.com',
+      email: 'admin@empresa.com',
       is_active: true,
     },
   });
