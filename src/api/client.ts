@@ -90,7 +90,7 @@ class ApiClient {
       capacity: data.capacity,
       location: data.location,
       equipment: data.equipment,
-      image_url: data.image,
+      image_url: data.imageUrl,
       observations: data.observations,
       available_days: data.availableDays,
       available_start: data.availableStartTime,
@@ -110,7 +110,7 @@ class ApiClient {
     if (data.capacity) apiData.capacity = data.capacity;
     if (data.location) apiData.location = data.location;
     if (data.equipment) apiData.equipment = data.equipment;
-    if (data.image) apiData.image_url = data.image;
+    if (data.imageUrl) apiData.image_url = data.imageUrl;
     if (data.observations) apiData.observations = data.observations;
     if (data.availableDays) apiData.available_days = data.availableDays;
     if (data.availableStartTime) apiData.available_start = data.availableStartTime;
@@ -136,6 +136,32 @@ class ApiClient {
       method: 'PUT',
     });
     return this.convertToCamelCase(result);
+  }
+
+  async deleteRoom(id: string): Promise<void> {
+    await this.request(`/rooms/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadFile(file: File): Promise<{ url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.getToken()}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Upload failed' }));
+      throw new Error(error.error || 'Upload failed');
+    }
+
+    return response.json();
   }
 
   // Bookings

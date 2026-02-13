@@ -8,7 +8,7 @@ export interface Room {
   capacity: number;
   location: string;
   equipment: string[];
-  image: string;
+  imageUrl: string;
   observations?: string;
   availableDays: number[]; // 0-6, Sunday-Saturday
   availableStartTime: string; // HH:mm

@@ -13,8 +13,8 @@ const parseRoom = (room: any) => ({
 // GET /api/rooms - Listar todas las salas
 router.get('/', async (_req: Request, res: Response) => {
   try {
+    // Eliminar el filtro is_blocked para que el admin pueda ver todas las salas
     const rooms = await prisma.room.findMany({
-      where: { is_blocked: false },
       orderBy: { name: 'asc' },
     });
     res.json(rooms.map(parseRoom));
@@ -136,6 +136,22 @@ router.put('/:id/unblock', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error unblocking room:', error);
     res.status(500).json({ error: 'Failed to unblock room' });
+  }
+});
+
+// DELETE /api/rooms/:id - Eliminar sala
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.room.delete({
+      where: { id },
+    });
+
+    res.json({ message: 'Room deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting room:', error);
+    res.status(500).json({ error: 'Failed to delete room' });
   }
 });
 

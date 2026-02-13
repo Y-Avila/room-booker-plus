@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   CalendarDays, 
   Building2, 
@@ -9,6 +9,7 @@ import {
   History
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { api } from '@/api/client';
 import { cn } from '@/lib/utils';
 
 const publicNavItems = [
@@ -25,12 +26,15 @@ const adminNavItems = [
 
 export function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin, setIsAdmin } = useApp();
 
   const navItems = isAdmin ? adminNavItems : publicNavItems;
 
   const handleLogout = () => {
+    api.setToken(null);
     setIsAdmin(false);
+    navigate('/');
   };
 
   return (

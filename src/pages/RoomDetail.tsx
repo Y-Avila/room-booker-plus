@@ -92,7 +92,7 @@ export default function RoomDetail() {
           <Card>
             <div className="aspect-video overflow-hidden rounded-t-lg bg-muted">
               <img
-                src={room.image || '/placeholder.svg'}
+                src={room.imageUrl || '/placeholder.svg'}
                 alt={room.name}
                 className="h-full w-full object-cover"
               />

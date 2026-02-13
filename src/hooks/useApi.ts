@@ -115,6 +115,17 @@ export const useUnblockRoom = () => {
   });
 };
 
+export const useDeleteRoom = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => api.deleteRoom(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.rooms });
+    },
+  });
+};
+
 // Bookings
 export const useBookings = (filters?: Record<string, string>) => {
   return useQuery({
